@@ -1,7 +1,4 @@
-package com.example.myshiftalarm
-
-import android.app.NotificationChannel
-import android.app.NotificationManager
+android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -42,6 +39,6 @@ class AlarmReceiver : BroadcastReceiver() {
         notificationManager.notify(
             System.currentTimeMillis().toInt(),
             notification
-        )
+        
     }
-}
+            }
