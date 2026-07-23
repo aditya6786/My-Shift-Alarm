@@ -25,9 +25,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         scheduleAllShiftAlarms()
-
-        val textView = findViewById<TextView>(android.R.id.content)
-
         showShiftInfo()
     }
 
@@ -36,15 +33,13 @@ class MainActivity : AppCompatActivity() {
         val alarmManager =
             getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val calendar = Calendar.getInstance()
-
         // Shift cycle starts from Saturday, 18 July 2026
         val startDate = Calendar.getInstance().apply {
             set(2026, Calendar.JULY, 18, 0, 0, 0)
             set(Calendar.MILLISECOND, 0)
         }
 
-        // Schedule alarms for the next 90 days
+        // Schedule alarms for next 90 days
         for (day in 0 until 90) {
 
             val date = Calendar.getInstance().apply {
@@ -54,139 +49,137 @@ class MainActivity : AppCompatActivity() {
 
             val dayOfCycle = day % 21
 
-            // Friday is weekly off.
-            // Cycle:
-            // 6 Morning + Friday Off
-            // 6 Night + Friday Off
-            // 6 Afternoon + Friday Off
+            // Weekly off: every 7th day
+            if (dayOfCycle == 6 ||
+                dayOfCycle == 13 ||
+                dayOfCycle == 20
+            ) {
+                continue
+            }
 
-            val shiftType: String
+            val shiftName: String
             val alarmHour: Int
+            val alarmMinute: Int
 
             when {
-                dayOfCycle in 0..5 -> {
-                    shiftType = "Morning Shift"
-                    alarmHour = 5
+                dayOfCycle < 7 -> {
+                    shiftName = "Morning Shift"
+                    alarmHour = 4
+                    alarmMinute = 50
                 }
 
-                dayOfCycle == 6 -> {
-                    continue
-                }
-
-                dayOfCycle in 7..12 -> {
-                    shiftType = "Night Shift"
-                    alarmHour = 20
-                }
-
-                dayOfCycle == 13 -> {
-                    continue
-                }
-
-                dayOfCycle in 14..19 -> {
-                    shiftType = "Afternoon Shift"
-                    alarmHour = 11
+                dayOfCycle < 14 -> {
+                    shiftName = "Afternoon Shift"
+                    alarmHour = 12
+                    alarmMinute = 50
                 }
 
                 else -> {
-                    continue
+                    shiftName = "Night Shift"
+                    alarmHour = 20
+                    alarmMinute = 50
                 }
             }
 
-            if (shiftType == "Morning Shift") {
+            val alarmCalendar = Calendar.getInstance().apply {
+                timeInMillis = date.timeInMillis
+                set(Calendar.HOUR_OF_DAY, alarmHour)
+                set(Calendar.MINUTE, alarmMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
 
-                for ((hour, minute) in alarmTimes) {
+            if (alarmCalendar.timeInMillis > System.currentTimeMillis()) {
 
-                    val alarmDate = Calendar.getInstance().apply {
-                        timeInMillis = date.timeInMillis
-                        set(Calendar.HOUR_OF_DAY, hour)
-                        set(Calendar.MINUTE, minute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
+                val intent = Intent(this, AlarmReceiver::class.java).apply {
+                    putExtra("shift_name", shiftName)
+                }
 
-                    scheduleAlarm(
-                        alarmManager,
-                        alarmDate,
-                        "$shiftType - Wake Up"
+                val requestCode = day * 100 + alarmHour * 10 + alarmMinute
+
+                val pendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    requestCode,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                            PendingIntent.FLAG_IMMUTABLE
+                )
+
+                try {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        alarmCalendar.timeInMillis,
+                        pendingIntent
+                    )
+                } catch (e: SecurityException) {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        alarmCalendar.timeInMillis,
+                        pendingIntent
                     )
                 }
-
-            } else {
-
-                val alarmDate = Calendar.getInstance().apply {
-                    timeInMillis = date.timeInMillis
-                    set(Calendar.HOUR_OF_DAY, alarmHour)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-
-                scheduleAlarm(
-                    alarmManager,
-                    alarmDate,
-                    "$shiftType - Wake Up"
-                )
             }
         }
-    }
-
-    private fun scheduleAlarm(
-        alarmManager: AlarmManager,
-        calendar: Calendar,
-        message: String
-    ) {
-
-        if (calendar.timeInMillis <= System.currentTimeMillis()) {
-            return
-        }
-
-        val intent = Intent(this, AlarmReceiver::class.java).apply {
-            putExtra("message", message)
-        }
-
-        val requestCode =
-            calendar.timeInMillis.toInt()
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or
-                    PendingIntent.FLAG_IMMUTABLE
-        )
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            pendingIntent
-        )
     }
 
     private fun showShiftInfo() {
 
-        val today = Calendar.getInstance()
+        val currentShiftText =
+            findViewById<TextView>(R.id.currentShiftText)
+
+        val shiftDetailsText =
+            findViewById<TextView>(R.id.shiftDetailsText)
 
         val startDate = Calendar.getInstance().apply {
             set(2026, Calendar.JULY, 18, 0, 0, 0)
             set(Calendar.MILLISECOND, 0)
         }
 
-        val daysPassed =
+        val today = Calendar.getInstance()
+
+        val daysSinceStart =
             ((today.timeInMillis - startDate.timeInMillis)
                     / (24 * 60 * 60 * 1000)).toInt()
 
-        val cycleDay =
-            if (daysPassed >= 0) daysPassed % 21 else 0
+        if (daysSinceStart < 0) {
 
-        val shift = when {
-            cycleDay in 0..5 -> "Morning Shift\nWake up alarms: 4:50, 5:00, 5:15, 5:30 AM"
-            cycleDay == 6 -> "WEEK OFF"
-            cycleDay in 7..12 -> "Night Shift\nWake up: 8:00 PM"
-            cycleDay == 13 -> "WEEK OFF"
-            cycleDay in 14..19 -> "Afternoon Shift\nWake up: 11:00 AM"
-            else -> "WEEK OFF"
+            currentShiftText.text = "Shift Cycle Not Started"
+
+            shiftDetailsText.text =
+                "Shift cycle starts on 18 July 2026"
+
+            return
         }
 
-        println("Today's Shift: $shift")
+        val dayOfCycle = daysSinceStart % 21
+
+        if (dayOfCycle == 6 ||
+            dayOfCycle == 13 ||
+            dayOfCycle == 20
+        ) {
+
+            currentShiftText.text = "Weekly Off"
+
+            shiftDetailsText.text =
+                "Today is your weekly off."
+
+            return
+        }
+
+        val shiftName = when {
+            dayOfCycle < 7 -> "Morning Shift"
+            dayOfCycle < 14 -> "Afternoon Shift"
+            else -> "Night Shift"
+        }
+
+        val dateFormat =
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        currentShiftText.text = shiftName
+
+        shiftDetailsText.text =
+            "Date: ${dateFormat.format(today.time)}\n" +
+            "Day ${dayOfCycle + 1} of 21-day cycle\n\n" +
+            "Your alarm has been scheduled."
     }
 }
