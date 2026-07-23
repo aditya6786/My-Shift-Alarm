@@ -1,25 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="My Shift Alarm"
-        android:textSize="28sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="Shift Alarm App"
-        android:textSize="18sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="My Shift Alarm"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/currentShiftText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Current Shift"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/shiftDetailsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Loading shift information..."
+            android:textSize="18sp"
+            android:gravity="center"
+            android:padding="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>
